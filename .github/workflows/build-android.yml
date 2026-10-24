@@ -67,7 +67,8 @@ jobs:
       # vcpkg dependencies (ffmpeg, opencv, boost, cocos2d-x, ...) take a long
       # time on the first run; later runs restore the binary cache.
       - name: Restore vcpkg binary cache
-        uses: actions/cache@v4
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/.vcpkg-cache
           key: vcpkg-${{ env.ABIS }}-${{ hashFiles('upstream/krkr2/vcpkg.json', 'upstream/krkr2/vcpkg-configuration.json', 'upstream/krkr2/vcpkg/**') }}
@@ -100,6 +101,15 @@ jobs:
 
       - name: Build APK
         run: ./scripts/build-android.sh release
+
+      # saved even when a later build step fails, so a retry does not have
+      # to recompile every vcpkg dependency
+      - name: Save vcpkg binary cache
+        if: always() && steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/.vcpkg-cache
+          key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}-${{ github.run_id }}
 
       - uses: actions/upload-artifact@v4
         with:

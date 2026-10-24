@@ -1,12 +1,14 @@
 diff --git a/cpp/core/base/MsgIntf.h b/cpp/core/base/MsgIntf.h
-index 57c3c1a..eefe2c0 100644
+index 57c3c1a..42551e3 100644
 --- a/cpp/core/base/MsgIntf.h
 +++ b/cpp/core/base/MsgIntf.h
-@@ -70,6 +70,7 @@ extern tjs_int TVPVersionBuild;
+@@ -70,6 +70,9 @@ extern tjs_int TVPVersionBuild;
  
  //---------------------------------------------------------------------------
  extern void TVPGetVersion();
++// Kirikiri Z compatibility options (implemented in SysInitImpl.cpp)
 +extern bool TVPIsKrkrzCompatMode();
++extern bool TVPGetKrkrzVersionOption(std::string &out);
  /*
          implement in each platforms;
          fill these four version field.
@@ -25,35 +27,15 @@ index 95bbba8..4776878 100644
      // set TJSGetRandomBits128
      TJSGetRandomBits128 = TVPGetRandomBits128;
 diff --git a/cpp/core/base/impl/MsgImpl.cpp b/cpp/core/base/impl/MsgImpl.cpp
-index 3c56969..2744f04 100644
+index 3c56969..ec243a6 100644
 --- a/cpp/core/base/impl/MsgImpl.cpp
 +++ b/cpp/core/base/impl/MsgImpl.cpp
-@@ -12,24 +12,70 @@
- 
+@@ -13,23 +13,39 @@
  #include "MsgIntf.h"
  #include "MsgImpl.h"
-+#include "SysInitIntf.h"
-+#include "ConfigManager/IndividualConfigManager.h"
-+
+ 
 +#include <cstdio>
 +
-+//---------------------------------------------------------------------------
-+// Kirikiri Z compatibility options. Read from the command line
-+// (-krkrzcompat=no) or from the game's Kirikiroid2Preference.xml
-+// (<Item key="krkrzcompat" value="no"/>).
-+//---------------------------------------------------------------------------
-+static bool TVPGetKrkrzOption(const tjs_char *cmdname, const char *cfgname,
-+                              std::string &out) {
-+    tTJSVariant val;
-+    if(TVPGetCommandLine(cmdname, &val)) {
-+        out = ttstr(val).AsStdString();
-+        return true;
-+    }
-+    out = IndividualConfigManager::GetInstance()->GetValue<std::string>(
-+        cfgname, "");
-+    return !out.empty();
-+}
- 
  //---------------------------------------------------------------------------
  // version retrieving
  //---------------------------------------------------------------------------
@@ -69,7 +51,7 @@ index 3c56969..2744f04 100644
 +        TVPVersionRelease = 0;
 +        TVPVersionBuild = 3;
 +        std::string str;
-+        if(TVPGetKrkrzOption(TJS_W("-krkrzversion"), "krkrzversion", str)) {
++        if(TVPGetKrkrzVersionOption(str)) {
 +            int v[4];
 +            if(std::sscanf(str.c_str(), "%d.%d.%d.%d", &v[0], &v[1], &v[2],
 +                           &v[3]) == 4) {
@@ -92,21 +74,10 @@ index 3c56969..2744f04 100644
 +        TVPVersionRelease, TVPVersionBuild);
  #endif
 -    }
-+}
-+
-+//---------------------------------------------------------------------------
-+// Kirikiri Z compatibility: enabled unless krkrzcompat is "no"
-+//---------------------------------------------------------------------------
-+// (not cached: the per-game preference can change between game launches)
-+bool TVPIsKrkrzCompatMode() {
-+    std::string str;
-+    if(TVPGetKrkrzOption(TJS_W("-krkrzcompat"), "krkrzcompat", str))
-+        return !(str == "no" || str == "false" || str == "0");
-+    return true;
  }
  
  //---------------------------------------------------------------------------
-@@ -39,6 +85,8 @@ extern const tjs_char *TVPCompileDate;
+@@ -39,6 +55,8 @@ extern const tjs_char *TVPCompileDate;
  extern const tjs_char *TVPCompileTime;
  
  ttstr TVPReadAboutStringFromResource() {
@@ -115,3 +86,44 @@ index 3c56969..2744f04 100644
      return TJS_W("Kirikiri2 Runtime Core version %1(TJS version %2)");
  #if 0
      HMODULE hModule = ::GetModuleHandle(nullptr);
+diff --git a/cpp/core/base/impl/SysInitImpl.cpp b/cpp/core/base/impl/SysInitImpl.cpp
+index 3225ec4..d35d690 100644
+--- a/cpp/core/base/impl/SysInitImpl.cpp
++++ b/cpp/core/base/impl/SysInitImpl.cpp
+@@ -605,6 +605,36 @@ bool TVPGetCommandLine(const tjs_char *name, tTJSVariant *value) {
+     return false;
+ }
+ 
++//---------------------------------------------------------------------------
++// Kirikiri Z compatibility options. Read from the command line
++// (-krkrzcompat=no) or from the game's Kirikiroid2Preference.xml
++// (<Item key="krkrzcompat" value="no"/>).
++//---------------------------------------------------------------------------
++static bool TVPGetKrkrzOption(const tjs_char *cmdname, const char *cfgname,
++                              std::string &out) {
++    tTJSVariant val;
++    if(TVPGetCommandLine(cmdname, &val)) {
++        out = ttstr(val).AsStdString();
++        return true;
++    }
++    out = IndividualConfigManager::GetInstance()->GetValue<std::string>(
++        cfgname, "");
++    return !out.empty();
++}
++
++// enabled unless krkrzcompat is "no"; not cached because the per-game
++// preference can change between game launches
++bool TVPIsKrkrzCompatMode() {
++    std::string str;
++    if(TVPGetKrkrzOption(TJS_W("-krkrzcompat"), "krkrzcompat", str))
++        return !(str == "no" || str == "false" || str == "0");
++    return true;
++}
++
++bool TVPGetKrkrzVersionOption(std::string &out) {
++    return TVPGetKrkrzOption(TJS_W("-krkrzversion"), "krkrzversion", out);
++}
++
+ //---------------------------------------------------------------------------
+ void TVPSetCommandLine(const tjs_char *name, const ttstr &value) {
+     //	TVPInitProgramArgumentsAndDataPath(false);
