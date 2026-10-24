@@ -1,0 +1,114 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      abis:
+        description: "ABIs to build (comma separated)"
+        default: "arm64-v8a"
+        required: true
+
+env:
+  NDK_VERSION: "28.0.13004108"
+  CMAKE_VERSION: "3.31.1"
+  ABIS: ${{ github.event.inputs.abis || 'arm64-v8a' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      contents: write
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/.toolchain/vcpkg
+      VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/.vcpkg-cache,readwrite"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /opt/hostedtoolcache /usr/local/share/boost
+          df -h
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bison python3 yasm nasm ninja-build autoconf-archive autopoint libtool
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "17"
+
+      - name: Install Android NDK and CMake
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platforms;android-34" "build-tools;34.0.0" \
+            "cmake;${CMAKE_VERSION}" "ndk;${NDK_VERSION}"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK=$ANDROID_HOME/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+          echo "$ANDROID_HOME/cmake/${CMAKE_VERSION}/bin" >> "$GITHUB_PATH"
+
+      - name: Set up vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git "$VCPKG_ROOT"
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+          mkdir -p "${{ github.workspace }}/.vcpkg-cache"
+
+      # vcpkg dependencies (ffmpeg, opencv, boost, cocos2d-x, ...) take a long
+      # time on the first run; later runs restore the binary cache.
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.vcpkg-cache
+          key: vcpkg-${{ env.ABIS }}-${{ hashFiles('upstream/krkr2/vcpkg.json', 'upstream/krkr2/vcpkg-configuration.json', 'upstream/krkr2/vcpkg/**') }}
+          restore-keys: vcpkg-${{ env.ABIS }}-
+
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ccache-${{ env.ABIS }}
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Prepare signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            {
+              echo "KEYSTORE_FILE=$RUNNER_TEMP/release.keystore"
+              echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+              echo "KEY_ALIAS=$KEY_ALIAS"
+              echo "KEY_PASSWORD=${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
+            } >> "$GITHUB_ENV"
+          else
+            echo "::warning::ANDROID_KEYSTORE_BASE64 secret not set; signing with a throwaway key (updates will need an uninstall first)."
+          fi
+
+      - name: Build APK
+        run: ./scripts/build-android.sh release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kirikiriz-android-${{ env.ABIS }}
+          path: dist/*.apk
+          if-no-files-found: error
+
+      - name: Attach APK to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.apk

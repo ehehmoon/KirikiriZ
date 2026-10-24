@@ -1,0 +1,3 @@
+[submodule "upstream/krkr2"]
+	path = upstream/krkr2
+	url = https://github.com/2468785842/krkr2.git

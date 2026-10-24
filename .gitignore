@@ -1,0 +1,3 @@
+/.toolchain/
+/dist/
+/.vcpkg-cache/

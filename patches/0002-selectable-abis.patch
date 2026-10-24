@@ -1,0 +1,32 @@
+diff --git a/platforms/android/app/build.gradle b/platforms/android/app/build.gradle
+index e4f75c8..32d9f01 100644
+--- a/platforms/android/app/build.gradle
++++ b/platforms/android/app/build.gradle
+@@ -3,6 +3,9 @@ plugins {
+     id 'org.jetbrains.kotlin.android'
+ }
+ 
++// ABIs to build, e.g. -PkrkrAbis=arm64-v8a (default: arm64-v8a,x86_64)
++def krkrAbis = (project.findProperty('krkrAbis') ?: 'arm64-v8a,x86_64').split(',')*.trim()
++
+ android {
+     ndkVersion '28.0.13004108'
+     compileSdk PROP_COMPILE_SDK_VERSION.toInteger()
+@@ -15,7 +18,7 @@ android {
+ 
+         ndk {
+             jobs Runtime.runtime.availableProcessors()
+-            abiFilters 'arm64-v8a', 'x86_64' //, 'armeabi-v7a'
++            abiFilters(*krkrAbis)
+         }
+ 
+         externalNativeBuild {
+@@ -104,7 +107,7 @@ android {
+         abi {
+             enable = true           // 启用 ABI 分包
+             reset()               // 清除默认支持的 ABI
+-            include 'arm64-v8a', 'x86_64' // 'armeabi-v7a', 'x86' // 指定支持的 ABI
++            include(*krkrAbis)
+             universalApk = true
+         }
+     }
