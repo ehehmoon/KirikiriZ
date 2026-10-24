@@ -43,7 +43,7 @@ if [ "$BUILD_TYPE" = release ]; then
         KEY_ALIAS="${KEY_ALIAS:-krkrz}"
         if [ ! -f "$KEYSTORE_FILE" ]; then
             mkdir -p "$TOOLCHAIN_DIR"
-            pass="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 24)"
+            pass="$(od -An -tx1 -N12 /dev/urandom | tr -d " \n")"
             keytool -genkeypair -keystore "$KEYSTORE_FILE" -alias "$KEY_ALIAS" \
                 -keyalg RSA -keysize 2048 -validity 10000 \
                 -storepass "$pass" -keypass "$pass" \
