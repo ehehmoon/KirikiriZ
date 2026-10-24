@@ -1,5 +1,5 @@
 diff --git a/platforms/android/app/build.gradle b/platforms/android/app/build.gradle
-index e4f75c8..32d9f01 100644
+index e4f75c8..8a1ea2f 100644
 --- a/platforms/android/app/build.gradle
 +++ b/platforms/android/app/build.gradle
 @@ -3,6 +3,9 @@ plugins {
@@ -21,9 +21,12 @@ index e4f75c8..32d9f01 100644
          }
  
          externalNativeBuild {
-@@ -104,7 +107,7 @@ android {
+@@ -102,9 +105,9 @@ android {
+ 
+     splits {
          abi {
-             enable = true           // 启用 ABI 分包
+-            enable = true           // 启用 ABI 分包
++            enable = krkrAbis.size() > 1  // one APK when building a single ABI
              reset()               // 清除默认支持的 ABI
 -            include 'arm64-v8a', 'x86_64' // 'armeabi-v7a', 'x86' // 指定支持的 ABI
 +            include(*krkrAbis)

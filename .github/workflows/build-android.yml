@@ -111,11 +111,25 @@ jobs:
           path: ${{ github.workspace }}/.vcpkg-cache
           key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}-${{ github.run_id }}
 
+      # artifact storage is shared by every repository of the account and can
+      # run out; the release below is the primary download location
       - uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: kirikiriz-android-${{ env.ABIS }}
           path: dist/*.apk
           if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish nightly prerelease
+        if: github.event_name != 'pull_request' && !startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete nightly --cleanup-tag --yes || true
+          gh release create nightly dist/*.apk --prerelease \
+            --target "$GITHUB_SHA" --title "Nightly (${GITHUB_REF_NAME})" \
+            --notes "Built from ${GITHUB_SHA} on ${GITHUB_REF_NAME}."
 
       - name: Attach APK to release
         if: startsWith(github.ref, 'refs/tags/v')

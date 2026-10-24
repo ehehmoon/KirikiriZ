@@ -39,10 +39,11 @@ krkr2는 원래 자신을 **KiriKiri2 2.32.2.426**으로 보고하고, TJS 전�
 
 ### GitHub Actions (권장)
 
-이 저장소에 푸시하면 `Build Android APK` 워크플로가 실행되고, 완료되면 실행 페이지의 **Artifacts**에서
-`kirikiriz-android-arm64-v8a`를 내려받을 수 있습니다. `v1.0.0`처럼 `v`로 시작하는 태그를 푸시하면 Release에도 APK가 첨부됩니다.
+이 저장소에 푸시하면 `Build Android APK` 워크플로가 실행되고, 완료되면 **Releases**의 `nightly`(사전 릴리스)에
+최신 APK가 올라갑니다. 실행 페이지의 **Artifacts**에도 7일간 올라가지만, 계정의 아티팩트 저장 용량이 차면 생략됩니다.
+`v1.0.0`처럼 `v`로 시작하는 태그를 푸시하면 그 이름의 Release에 APK가 첨부됩니다.
 
-- 첫 빌드는 vcpkg 의존성(ffmpeg, OpenCV, Boost, cocos2d-x 등)을 전부 컴파일하므로 1~3시간 걸립니다. 이후에는 캐시를 씁니다.
+- 첫 빌드는 vcpkg 의존성(ffmpeg, OpenCV, Boost, cocos2d-x 등)을 전부 컴파일하므로 1시간 남짓 걸립니다. 이후에는 캐시를 씁니다.
 - 다른 ABI가 필요하면 Actions 탭 → `Build Android APK` → **Run workflow**에서 `arm64-v8a,x86_64`처럼 지정합니다.
 - **서명 키**: 저장소 Secrets에 `ANDROID_KEYSTORE_BASE64`(keystore 파일을 base64로 인코딩한 값), `ANDROID_KEYSTORE_PASSWORD`,
   `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`를 등록하세요. 등록하지 않으면 빌드마다 임시 키로 서명되므로, 새 버전을 설치할 때
