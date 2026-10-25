@@ -13,6 +13,7 @@
 | `upstream/krkr2/` | 엔진 본체 (서브모듈, 커밋 고정) |
 | `patches/0001-krkrz-1.2.0.3-compat.patch` | KrkrZ 1.2.0.3 호환 모드 (아래 참고) |
 | `patches/0002-selectable-abis.patch` | `-PkrkrAbis=` 로 빌드할 ABI 선택 |
+| `patches/0003-report-unlaunchable-archives.patch` | 실행할 수 없는 XP3를 눌렀을 때 아무 반응 없이 무시하던 것을 안내창으로 알림 |
 | `scripts/setup-android-env.sh` | Android SDK/NDK 28, CMake 3.31.1, vcpkg 설치 |
 | `scripts/build-android.sh` | 패치 적용 → APK 빌드 → `dist/` 에 복사 |
 | `.github/workflows/build-android.yml` | 푸시할 때마다 APK를 빌드해 아티팩트로 업로드 |
@@ -28,7 +29,7 @@ krkr2는 원래 자신을 **KiriKiri2 2.32.2.426**으로 보고하고, TJS 전�
 - `System.versionInformation` / about 문자열 → `Kirikiri Z Runtime Core version 1.2.0.3 ...`
 
 호환 모드는 기본으로 켜져 있습니다. KiriKiri2용 게임이 오작동하거나 게임이 다른 버전 번호를 요구하면,
-게임 폴더의 `Kirikiroid2Preference.xml`(앱의 게임별 설정을 한 번 저장하면 생성됨)에 항목을 추가합니다.
+게임 폴더의 `Kirikiroid2Preference.xml`(앱의 게임별 설정을 한 번 저장하면 생성됨, 위치는 아래 "게임 실행 방법" 참고)에 항목을 추가합니다.
 
 ```xml
 <Item key="krkrzcompat" value="no"/>        <!-- 호환 모드 끄기 (KiriKiri2 2.32로 동작) -->
@@ -68,7 +69,18 @@ cd KirikiriZ
 1. APK를 설치하고 실행한 뒤 **모든 파일 접근 권한**을 허용합니다 (Android 11 이상).
 2. PC의 게임 설치 폴더(`data.xp3`, `*.xp3`, `plugin/` 등이 있는 폴더)를 통째로 기기 저장소에 복사합니다.
    `krkrz.exe`/`*.exe`와 `*.dll`은 안드로이드에서 쓰이지 않지만 같이 두어도 문제없습니다.
-3. 앱의 파일 선택 화면에서 그 폴더로 이동해 `data.xp3`(또는 `startup.tjs`)를 선택합니다.
+3. 앱의 파일 선택 화면에서 그 폴더로 이동해 `data.xp3`를 누릅니다. 압축되지 않은 개발용 폴더(`startup.tjs`가 있는 폴더)라면
+   그 폴더 자체를 누릅니다.
+
+`data.xp3`를 눌렀는데 안내창이 뜨면:
+
+- **"startup.tjs를 찾지 못했습니다"**: 아카이브는 읽혔지만 그 안에 `startup.tjs`가 없습니다. 안내창에 나온 파일 이름이
+  `a3f9…` 같은 해시 모양이면 파일 이름을 해시화한 KrkrZ 아카이브로, 지금 엔진으로는 실행되지 않을 가능성이 큽니다.
+  일반 파일 이름이면 다른 `.xp3`에 `startup.tjs`가 있는 게임일 수 있으니 "예"로 실행해 보세요.
+- **"XP3 아카이브로 읽을 수 없습니다"**: 인덱스가 암호화되었거나 지원하지 않는 형식입니다.
+
+게임별 설정 파일 `Kirikiroid2Preference.xml`의 위치는 누른 대상의 상위 폴더입니다. `data.xp3`를 눌렀다면 게임 폴더,
+`startup.tjs` 폴더를 눌렀다면 그 폴더의 상위 폴더입니다.
 
 ## 호환성과 한계
 
