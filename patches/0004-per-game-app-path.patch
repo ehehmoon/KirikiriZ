@@ -1,0 +1,33 @@
+diff --git a/cpp/core/base/impl/StorageImpl.cpp b/cpp/core/base/impl/StorageImpl.cpp
+index 8e4409d..bbfcfa5 100644
+--- a/cpp/core/base/impl/StorageImpl.cpp
++++ b/cpp/core/base/impl/StorageImpl.cpp
+@@ -503,8 +503,9 @@ bool TVPRemoveFolder(const ttstr &name) {
+ // TVPGetAppPath
+ //---------------------------------------------------------------------------
+ ttstr TVPGetAppPath() {
+-    static ttstr apppath(TVPExtractStoragePath(TVPProjectDir));
+-    return apppath;
++    // not cached: the launcher can start several games in one process, and a
++    // cached value made xp3filter.tjs / patch.tjs load from the first game
++    return TVPExtractStoragePath(TVPProjectDir);
+ }
+ //---------------------------------------------------------------------------
+ 
+diff --git a/cpp/plugins/xp3filter.cpp b/cpp/plugins/xp3filter.cpp
+index 2675d96..d7fd8d7 100644
+--- a/cpp/plugins/xp3filter.cpp
++++ b/cpp/plugins/xp3filter.cpp
+@@ -549,7 +549,11 @@ void TVPSetXP3FilterScript(ttstr content) {
+ 
+ static void PostRegistCallback() {
+     ttstr path = TVPGetAppPath() + TJS_W("xp3filter.tjs");
+-    if(TVPIsExistentStorageNoSearch(path)) {
++    bool found = TVPIsExistentStorageNoSearch(path);
++    TVPAddImportantLog(ttstr(found ? TJS_W("(info) xp3filter loaded: ")
++                                   : TJS_W("(info) xp3filter not found: ")) +
++                       path);
++    if(found) {
+         iTJSTextReadStream *stream = TVPCreateTextStreamForRead(path, "");
+         try {
+             stream->Read(sXP3FilterScript, 0);

@@ -14,6 +14,7 @@
 | `patches/0001-krkrz-1.2.0.3-compat.patch` | KrkrZ 1.2.0.3 호환 모드 (아래 참고) |
 | `patches/0002-selectable-abis.patch` | `-PkrkrAbis=` 로 빌드할 ABI 선택 |
 | `patches/0003-report-unlaunchable-archives.patch` | 실행할 수 없는 XP3를 눌렀을 때 아무 반응 없이 무시하던 것을 안내창으로 알림 |
+| `patches/0004-per-game-app-path.patch` | 앱을 끄지 않고 다른 게임을 열면 `xp3filter.tjs`/`patch.tjs`를 처음 연 게임 폴더에서 찾던 버그 수정 |
 | `scripts/setup-android-env.sh` | Android SDK/NDK 28, CMake 3.31.1, vcpkg 설치 |
 | `scripts/build-android.sh` | 패치 적용 → APK 빌드 → `dist/` 에 복사 |
 | `.github/workflows/build-android.yml` | 푸시할 때마다 APK를 빌드해 아티팩트로 업로드 |
